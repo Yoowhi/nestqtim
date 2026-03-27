@@ -1,0 +1,70 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nestqtim-api
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - HTTP_PORT=${HTTP_PORT:-3000}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-user}
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - DB_DATABASE=${DB_DATABASE:-name}
+      - PASSWORD_SALT_ROUNDS=${PASSWORD_SALT_ROUNDS:-10}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_here}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-60s}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nestqtim-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: nestqtim-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER:-user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_DATABASE:-name}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - nestqtim-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nestqtim-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - nestqtim-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:
+  redis-data:
+
+networks:
+  nestqtim-network:
+    driver: bridge

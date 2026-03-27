@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      target: development
+    command: npm run start:dev
+    volumes:
+      - .:/app
+    networks:
+      - nestqtim-network
+
+  db:
+    volumes:
+      - db-data-dev:/var/lib/postgresql/data
+    networks:
+      - nestqtim-network
+
+  redis:
+    volumes:
+      - redis-data-dev:/data
+    networks:
+      - nestqtim-network
+
+volumes:
+  db-data-dev:
+  redis-data-dev:
