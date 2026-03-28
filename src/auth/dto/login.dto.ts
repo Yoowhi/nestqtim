@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString } from "class-validator";
-import { SignUpResponseDTO } from "./signup.dto.ts";
+import { SignUpResponseDTO } from "./signup.dto";
 
 export class LoginRequestDTO {
     @IsString()

@@ -6,13 +6,15 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './core/auth.guard';
 import dataSourceConfig from "./core/db"
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ArticleModule } from './article/article.module';
 
 @Module({
     imports: [
         TypeOrmModule.forRoot(dataSourceConfig),
         AuthModule,
         UserModule,
-        HealthModule
+        HealthModule,
+        ArticleModule
     ],
     controllers: [],
     providers: [
