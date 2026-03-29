@@ -1,7 +1,12 @@
 import { Transform } from "class-transformer";
-import { IsDate, IsInt, IsNumber, IsOptional, IsString, Min } from "class-validator";
+import { IsDate, IsEnum, IsInt, IsNumber, IsOptional, IsString, Min } from "class-validator";
 
-export class FindManyRequestDTO {
+enum SortOrder {
+    ASC = "ASC",
+    DESC = "DESC"
+}
+
+export class FindManyDTO {
     
     @IsString()
     @IsOptional()
@@ -32,4 +37,8 @@ export class FindManyRequestDTO {
     @IsInt()
     @Transform(({ value }) => value ?? 1)
     limit: number;
+
+    @IsEnum(SortOrder)
+    @Transform(({ value }) => value ?? SortOrder.DESC)
+    order: SortOrder;
 }

@@ -9,7 +9,7 @@ export class Article {
     @Column()
     title: string;
     
-    @Column()
+    @Column({type: 'text'}) // для больших текстов
     text: string;
 
     @CreateDateColumn()
@@ -17,6 +17,9 @@ export class Article {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @Column()
+    author_id: number;
 
     @ManyToOne(() => User, user => user.articles)
     @JoinColumn({ name: 'author_id' })

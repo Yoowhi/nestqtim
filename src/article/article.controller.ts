@@ -1,9 +1,13 @@
-import { Controller, Get, HttpCode, HttpStatus, NotFoundException, Param, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, Patch, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import { Public } from 'src/core/auth.guard';
 import { ArticleService } from './article.service';
 import { Article } from './entities/article.entity';
-import { FindManyRequestDTO } from './dto/find-many.dto';
+import { FindManyDTO } from './dto/find-many.dto';
 import { Pagination } from 'src/types/pagination';
+import { CreateArticleDTO } from './dto/create-one.dto';
+import { UserInfo } from 'src/types/user-info';
+import type { AuthenticatedRequest } from 'src/types/authenticated-request';
+import { UpdateArticleDTO } from './dto/update-one.dto';
 
 @Controller('article')
 export class ArticleController {
@@ -12,24 +16,50 @@ export class ArticleController {
     ) {}
 
     @Public()
-    @HttpCode(HttpStatus.OK)
     @Get()
     async findOne(@Param(":id") id: number) : Promise<Article> {
-        try {
-            return await this.articleService.findOne(id);
-        } catch (error) {
+        const result = await this.articleService.findOne(id);
+        if (!result) {
             throw new NotFoundException();
         }
+        return result;
     }
 
     @Public()
-    @HttpCode(HttpStatus.OK)
     @Get()
-    async findMany(@Query() findManyDto: FindManyRequestDTO) : Promise<Pagination<Article>> {
-        try {
-            return await this.articleService.findPage(findManyDto);
-        } catch (error) {
+    async findMany(@Query() findManyDto: FindManyDTO) : Promise<Pagination<Article>> {
+        return await this.articleService.findPage(findManyDto);
+    }
+
+    @Post()
+    async createOne(@Body() createArticleDto: CreateArticleDTO, @Req() request: AuthenticatedRequest) : Promise<Article> {
+        const authorId = (request.user as UserInfo).id;
+        return await this.articleService.createOne(createArticleDto, authorId);
+    } 
+
+    @Patch()
+    async updateOne(@Param(":id") id: number, @Body() updateArticleDto: UpdateArticleDTO, @Req() request: AuthenticatedRequest) : Promise<Article> {
+        const authorId = (request.user as UserInfo).id;
+        const article = await this.articleService.findOne(id);
+        if (!article) {
             throw new NotFoundException();
         }
+        if (article.author_id !== authorId) { // подразумевается, что пользователь может редактировать только свои статьи
+            throw new UnauthorizedException();
+        }
+        return await this.articleService.updateOne(updateArticleDto, authorId);
+    }
+
+    @Delete()
+    async deleteOne(@Param(":id") id: number, @Req() request: AuthenticatedRequest) {
+        const authorId = (request.user as UserInfo).id;
+        const article = await this.articleService.findOne(id);
+        if (!article) {
+            throw new NotFoundException();
+        }
+        if (article.author_id !== authorId) { // подразумевается, что пользователь может редактировать только свои статьи
+            throw new UnauthorizedException();
+        }
+        await this.articleService.deleteOne(id);
     }
 }

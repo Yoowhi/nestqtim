@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Article } from './entities/article.entity';
 import { Repository } from 'typeorm';
-import { FindManyRequestDTO } from './dto/find-many.dto';
+import { FindManyDTO } from './dto/find-many.dto';
+import { CreateArticleDTO } from './dto/create-one.dto';
+import { UpdateArticleDTO } from './dto/update-one.dto';
 
 @Injectable()
 export class ArticleService {
@@ -11,12 +13,30 @@ export class ArticleService {
         private readonly articleRepository: Repository<Article>,
     ) {}
 
-    async findOne(id: number) {
-        return await this.articleRepository.findOneByOrFail({id});
+    async createOne(createArticleDto: CreateArticleDTO, authorId: number) {
+        const article = this.articleRepository.create(createArticleDto);
+        article.author_id = authorId;
+        return await this.articleRepository.save(article);
     }
 
-    async findPage(search: FindManyRequestDTO) {
-        // Подразумевается, что результаты фильтруются пересечением условий 
+    async updateOne(updateArticleDto: UpdateArticleDTO, articleId: number) {
+        const result = await this.articleRepository.update(articleId, updateArticleDto);
+        if (result.affected === 0) {
+            throw new NotFoundException();
+        }
+        return (await this.articleRepository.findOneBy({ id: articleId }))!;
+    }
+
+    async findOne(id: number) {
+        return await this.articleRepository.findOneBy({id});
+    }
+
+    async deleteOne(id: number) {
+        return await this.articleRepository.delete({id});
+    }
+
+    async findPage(search: FindManyDTO) {
+        // Подразумевается, что результаты фильтруются пересечением условий (AND) 
         const {
             title,
             text,
@@ -24,7 +44,8 @@ export class ArticleService {
             fromCreatedAt,
             toCreatedAt,
             page = 0,
-            limit = 20
+            limit = 20,
+            order
         } = search;
         const query = this.articleRepository.createQueryBuilder('article');
         query.innerJoin('article.author_id', 'user')
@@ -43,9 +64,9 @@ export class ArticleService {
         if (toCreatedAt) {
             query.andWhere('article.createdAt <= :toCreatedAt', {toCreatedAt});
         }
-        query.orderBy('article.createdAt', 'DESC'); // новые статьи первее
+        query.orderBy('article.createdAt', order);
         query.skip(limit * page); // задаем оффсет
-        query.take(limit); // отрезаем лишку из селекта
+        query.take(limit); // отрезаем лишку, получаем страницу
 
         const articles = await query.getMany();
         const total = await query.getCount();

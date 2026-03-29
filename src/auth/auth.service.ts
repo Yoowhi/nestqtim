@@ -4,7 +4,7 @@ import { compare, hash } from 'bcrypt'
 import { JwtService } from '@nestjs/jwt';
 import { security } from "../core/config"
 import { LoginRequestDTO } from './dto/login.dto';
-import { SignupRequestDTO } from './dto/signup.dto.ts';
+import { SignupRequestDTO } from './dto/signup.dto';
 
 @Injectable()
 export class AuthService {
@@ -22,11 +22,10 @@ export class AuthService {
         if (!match) {
             throw new UnauthorizedException("User doesn't exists or password doesn't match");
         }
-        const payload = { sub: user.id, username: user.username };
         const {password: pwd, ...userTruncated } = user; // убираем хэш пароля из объекта, юзеру он не нужен
         return {
             user: userTruncated,
-            accessToken: await this.jwtService.signAsync(payload)
+            accessToken: await this.jwtService.signAsync(userTruncated)
         }
     }
 
@@ -37,10 +36,9 @@ export class AuthService {
         }
         signupDto.password = await hash(signupDto.password, security.passwordSaltRounds);
         const {password: pwd, ...userTruncated } = await this.userService.createOne(signupDto);
-        const payload = { sub: userTruncated.id, username: userTruncated.username };
         return {
             user: userTruncated,
-            accessToken: await this.jwtService.signAsync(payload)
+            accessToken: await this.jwtService.signAsync(userTruncated)
         }
     }
 }
