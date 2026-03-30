@@ -7,14 +7,24 @@ import { AuthGuard } from './core/auth.guard';
 import dataSourceConfig from "./core/db"
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ArticleModule } from './article/article.module';
+import { redis } from './core/config';
+import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisJsonModule } from './redis-json/redis-json.module';
 
 @Module({
     imports: [
         TypeOrmModule.forRoot(dataSourceConfig),
+        RedisModule.forRoot({
+            config: {
+                host: redis.host,
+                port: redis.port,
+            }
+        }),
         AuthModule,
         UserModule,
         HealthModule,
-        ArticleModule
+        ArticleModule,
+        RedisJsonModule,
     ],
     controllers: [],
     providers: [

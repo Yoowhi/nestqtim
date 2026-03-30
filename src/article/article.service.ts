@@ -5,18 +5,24 @@ import { Repository } from 'typeorm';
 import { FindManyDTO } from './dto/find-many.dto';
 import { CreateArticleDTO } from './dto/create-one.dto';
 import { UpdateArticleDTO } from './dto/update-one.dto';
+import { Pagination } from 'src/types/pagination';
+import { RedisJsonService } from 'src/redis-json/redis-json.service';
 
 @Injectable()
 export class ArticleService {
     constructor(
         @InjectRepository(Article)
         private readonly articleRepository: Repository<Article>,
+        private readonly redisJsonService: RedisJsonService
     ) {}
 
     async createOne(createArticleDto: CreateArticleDTO, authorId: number) {
         const article = this.articleRepository.create(createArticleDto);
         article.author_id = authorId;
-        return await this.articleRepository.save(article);
+        const result = await this.articleRepository.save(article);
+        await this.redisJsonService.set(`article:one:${result.id}`, result);
+        await this.redisJsonService.clearByPrefix(`article:search`);
+        return result;
     }
 
     async updateOne(updateArticleDto: UpdateArticleDTO, articleId: number) {
@@ -24,18 +30,41 @@ export class ArticleService {
         if (result.affected === 0) {
             throw new NotFoundException();
         }
-        return (await this.articleRepository.findOneBy({ id: articleId }))!;
+        const article = (await this.articleRepository.findOneBy({ id: articleId }))!;
+        await this.redisJsonService.set(`article:one:${article.id}`, article);
+        await this.redisJsonService.clearByPrefix(`article:search`);
+        return article;
     }
 
     async findOne(id: number) {
-        return await this.articleRepository.findOneBy({id});
+        const cache = await this.redisJsonService.get<Article>(`article:one:${id}`);
+        if (cache) {
+            return cache;
+        }
+        const result = await this.articleRepository.findOneBy({id});
+        if (result) {
+            await this.redisJsonService.set(`article:one:${result.id}`, result);
+        }
+        return result;
     }
 
     async deleteOne(id: number) {
-        return await this.articleRepository.delete({id});
+        const result = await this.articleRepository.delete({id});
+        const deleted = result.affected && result.affected > 0;
+        if (deleted) {
+            await this.redisJsonService.clear(`article:one:${id}`);
+            await this.redisJsonService.clearByPrefix(`article:search`);
+        }
+        return deleted;
     }
 
     async findPage(search: FindManyDTO) {
+        const cache = await this.redisJsonService.getCacheForDto<Pagination<Article>>('article:search', search);
+        if (cache) {
+            return cache;
+        }
+
+
         // Подразумевается, что результаты фильтруются пересечением условий (AND) 
         const {
             title,
@@ -71,7 +100,7 @@ export class ArticleService {
         const articles = await query.getMany();
         const total = await query.getCount();
 
-        return {
+        const result: Pagination<Article> = {
             page: articles,
             metadata: {
                 total,
@@ -80,5 +109,10 @@ export class ArticleService {
                 totalPages: Math.ceil(total / limit)
             }
         };
+
+        await this.redisJsonService.setCacheForDto('article:search', search, result);
+        return result;
     }
+
+    
 }
