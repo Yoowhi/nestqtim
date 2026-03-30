@@ -18,8 +18,17 @@ export class RedisJsonService {
         return JSON.parse(result) as T;
     }
 
-    async set(key: string, obj: Object) {
-        await this.redis.set(key, JSON.stringify(obj));
+    async exists(key: string) {
+        return !!await this.redis.exists(key);
+    }
+
+    async set(key: string, obj: Object, ttl?: number) {
+        const value = JSON.stringify(obj);
+        if (ttl !== undefined) {
+            await this.redis.setex(key, ttl, value);
+        } else {
+            await this.redis.set(key, value);
+        }
     }
 
     async getCacheForDto<T>(prefix: string, dto: Object): Promise<T | null> {

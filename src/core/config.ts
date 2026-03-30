@@ -27,7 +27,8 @@ export const db = {
 export const security = {
     passwordSaltRounds: parseInt(process.env.PASSWORD_SALT_ROUNDS as string),
     jwtSecret: process.env.JWT_SECRET as string,
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN as StringValue,
+    jwtAccessTokenTTL: process.env.JWT_ACCESS_TTL as StringValue,
+    jwtRefreshTokenTTL: process.env.JWT_REFRESH_TTL as StringValue,
 };
 
 export const redis = {
