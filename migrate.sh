@@ -28,7 +28,7 @@ stop_container() {
 }
 
 # Handle cleanup on exit
-trap 'stop_container' EXIT
+#trap 'stop_container' EXIT
 
 # Parse command
 case "$1" in

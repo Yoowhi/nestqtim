@@ -10,14 +10,6 @@ export class SignupRequestDTO {
     @IsString()
     @IsNotEmpty()
     password: string;
-
-    @IsString()
-    @IsNotEmpty()
-    name: string;
-
-    @IsString()
-    @IsNotEmpty()
-    lastName: string;
 }
 
 export interface SignUpResponseDTO {

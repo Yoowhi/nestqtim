@@ -5,6 +5,7 @@ services:
     command: npm run start:dev
     volumes:
       - .:/app
+      - ./src/migrations:/app/src/migrations
     networks:
       - nestqtim-network
 
